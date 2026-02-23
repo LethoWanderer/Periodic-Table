@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Periodic Table with Real Images | পর্যায় সারণি</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --card-bg: #ffffff;
+            --card-border: rgba(0,0,0,0.1);
+            --header-bg: #ffffff;
+            --header-shadow: rgba(0,0,0,0.05);
+            --modal-bg: #ffffff;
+            --overlay-bg: rgba(0,0,0,0.5);
+            --accent-color: #007bff;
+
+            /* Category Colors (Light Mode) */
+            --c-alkali: #ffcdd2;
+            --c-alkaline: #ffe0b2;
+            --c-transition: #fff9c4;
+            --c-post-transition: #c8e6c9;
+            --c-metalloid: #b2dfdb;
+            --c-nonmetal: #bbdefb;
+            --c-halogen: #e1bee7;
+            --c-noble: #d1c4e9;
+            --c-lanthanide: #f8bbd0;
+            --c-actinide: #f48fb1;
+            --c-unknown: #e0e0e0;
+        }
+
+        /* Dark Mode Variables */
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-main: #e0e0e0;
+            --text-muted: #aaaaaa;
+            --card-bg: #1e1e1e;
+            --card-border: rgba(255,255,255,0.1);
+            --header-bg: #1f1f1f;
+            --header-shadow: rgba(0,0,0,0.5);
+            --modal-bg: #242424;
+            --overlay-bg: rgba(0,0,0,0.8);
+            --accent-color: #4da3ff;
+
+            /* Category Colors (Dark Mode) */
+            --c-alkali: #4a2327;
+            --c-alkaline: #4a3416;
+            --c-transition: #4a4716;
+            --c-post-transition: #1f3d22;
+            --c-metalloid: #173d39;
+            --c-nonmetal: #1a364f;
+            --c-halogen: #3e244a;
+            --c-noble: #31264a;
+            --c-lanthanide: #4a2334;
+            --c-actinide: #5c2438;
+            --c-unknown: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        .en { font-family: 'Poppins', sans-serif; }
+        .bn { font-family: 'Hind Siliguri', sans-serif; }
+
+        /* Header & Controls */
+        header {
+            background-color: var(--header-bg);
+            box-shadow: 0 2px 10px var(--header-shadow);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .search-box {
+            padding: 8px 15px;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            background: var(--bg-color);
+            color: var(--text-main);
+            outline: none;
+            width: 250px;
+        }
+        .search-box:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 5px var(--accent-color);
+        }
+
+        .btn-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-toggle:hover {
+            background: var(--bg-color);
+        }
+
+        /* Periodic Table Grid */
+        .table-wrapper {
+            padding: 30px 20px;
+            overflow-x: auto;
+            min-height: calc(100vh - 80px);
+            display: flex;
+            justify-content: center;
+        }
+
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, minmax(60px, 1fr));
+            grid-template-rows: repeat(10, minmax(70px, auto));
+            gap: 5px;
+            min-width: 1100px;
+        }
+
+        /* Element Card */
+        .element {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, opacity 0.3s;
+        }
+
+        .element:hover {
+            transform: scale(1.15);
+            z-index: 10;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+
+        .element.dimmed {
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .element.highlight {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--accent-color);
+            border-color: var(--accent-color);
+            z-index: 5;
+        }
+
+        .el-num {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .el-symbol {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 5px;
+        }
+
+        .el-name {
+            font-size: 9px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        /* Category Colors */
+        .cat-ক্ষার-ধাতু { background-color: var(--c-alkali); }
+        .cat-ক্ষারীয়-মৃত্তিকা-ধাতু { background-color: var(--c-alkaline); }
+        .cat-ট্রানজিশন-ধাতু { background-color: var(--c-transition); }
+        .cat-পোস্ট-ট্রানজিশন-ধাতু { background-color: var(--c-post-transition); }
+        .cat-উপধাতু { background-color: var(--c-metalloid); }
+        .cat-অধাতু { background-color: var(--c-nonmetal); }
+        .cat-হ্যালোজেন { background-color: var(--c-halogen); }
+        .cat-নিষ্ক্রিয়-গ্যাস { background-color: var(--c-noble); }
+        .cat-ল্যান্থানাইড { background-color: var(--c-lanthanide); }
+        .cat-অ্যাক্টিনাইড { background-color: var(--c-actinide); }
+        .cat-অজানা-বৈশিষ্ট্য { background-color: var(--c-unknown); }
+
+        /* Modal Settings */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay-bg);
+            backdrop-filter: blur(3px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            width: 90%;
+            max-width: 550px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(30px);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            position: relative;
+        }
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+            line-height: 1;
+            background: none;
+            border: none;
+            z-index: 10;
+        }
+        .modal-close:hover {
+            color: #ff4444;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            padding: 25px;
+            border-bottom: 1px solid var(--card-border);
+            gap: 20px;
+        }
+
+        .modal-symbol-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            font-weight: 700;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        .modal-symbol-box .m-num {
+            position: absolute;
+            top: 5px; left: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .modal-title h2 { font-size: 26px; margin-bottom: 5px; color: var(--text-main); }
+        .modal-title h3 { font-size: 18px; color: var(--text-muted); font-weight: 600; }
+
+        /* Real Image Display Box */
+        .modal-image-box {
+            width: 90px;
+            height: 90px;
+            border-radius: 10px;
+            margin-left: auto;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border: 2px solid var(--card-border);
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .modal-image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+            background-color: #fff; /* For transparent SVGs */
+        }
+
+        /* Image Loader Spinner */
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 4px solid var(--card-border);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .modal-body {
+            padding: 25px;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .info-item {
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            font-size: 15px;
+        }
+        .info-item strong {
+            display: block;
+            color: var(--accent-color);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        /* Toast message */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff4d4d;
+            color: #fff;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 2000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .toast.show { opacity: 1; }
+
+        /* Responsive */
+        @media(max-width: 768px) {
+            .search-box { width: 100%; margin-top: 10px; }
+            .header-title { width: 100%; text-align: center; }
+            .controls { width: 100%; justify-content: center; }
+        }
+
+        @media(max-width: 500px) {
+            .modal-header { flex-direction: column; text-align: center; gap: 15px; }
+            .modal-image-box { margin-left: 0; margin-top: 5px; width: 120px; height: 120px; border-radius: 50%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1 class="bn">পর্যায় সারণি <span class="en" style="font-size:16px; font-weight:400;">(Periodic Table)</span></h1>
+        </div>
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-box bn" placeholder="মৌলের নাম (English) বা প্রতীক খুঁজুন..." oninput="searchElement()">
+            <button class="btn-toggle bn" onclick="toggleDarkMode()" id="themeBtn">ডার্ক মোড</button>
+        </div>
+    </header>
+
+    <div class="table-wrapper">
+        <div class="periodic-table" id="pTable"></div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOutside(event)">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-header">
+                <div class="modal-symbol-box en" id="mSymbolBox">
+                    <span class="m-num" id="mNum"></span>
+                    <span id="mSymbol"></span>
+                </div>
+                <div class="modal-title">
+                    <h2 class="en" id="mName"></h2>
+                    <h3 class="bn" id="mBnName"></h3>
+                </div>
+                <!-- Real Image Box -->
+                <div class="modal-image-box" title="Real appearance or atomic representation">
+                    <div class="spinner" id="imgLoader"></div>
+                    <img id="mRealImage" src="" alt="Element Image">
+                </div>
+            </div>
+            <div class="modal-body bn">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>পরমাণু সংখ্যা (Atomic Number)</strong>
+                        <span id="mdNum" class="en"></span>
+                    </div>
+                    <div class="info-item">
+                        <strong>আণবিক ভর (Atomic Mass)</strong>
+                        <span id="mMass" class="en"></span>
+                    </div>
+                    <div class="info-item">
+                        <strong>ইলেকট্রন বিন্যাস (Electron Configuration)</strong>
+                        <span id="mConfig" class="en"></span>
+                    </div>
+                    <div class="info-item" style="display: flex; gap:10px;">
+                        <div style="flex:1">
+                            <strong>গ্রুপ (Group)</strong>
+                            <span id="mGroup" class="en"></span>
+                        </div>
+                        <div style="flex:1">
+                            <strong>পর্যায় (Period)</strong>
+                            <span id="mPeriod" class="en"></span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <strong>শ্রেণি (Category)</strong>
+                        <span id="mCategory"></span>
+                    </div>
+                    <div class="info-item">
+                        <strong>একটি গুরুত্বপূর্ণ ব্যবহার</strong>
+                        <span id="mUse"></span>
+                    </div>
+                    <div class="info-item">
+                        <strong>বাস্তব উদাহরণ</strong>
+                        <span id="mExample"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast bn" id="toastMsg">খুঁজে পাওয়া যায়নি</div>
+
+    <script>
+        const elements = [
+            { atomicNumber: 1, symbol: "H", name: "Hydrogen", bengaliName: "হাইড্রোজেন", atomicMass: "1.008", electronConfig: "1s¹", group: 1, period: 1, category: "অধাতু", use: "রকেট জ্বালানি ও রাসায়নিক শিল্পে ব্যবহৃত হয়", example: "পানির (H₂O) প্রধান উপাদান, যা জীবনের জন্য অপরিহার্য।" },
+            { atomicNumber: 2, symbol: "He", name: "Helium", bengaliName: "হিলিয়াম", atomicMass: "4.0026", electronConfig: "1s²", group: 18, period: 1, category: "নিষ্ক্রিয় গ্যাস", use: "বেলুন ও এয়ারশিপে গ্যাস হিসেবে ব্যবহৃত হয়", example: "এমআরআই (MRI) মেশিনের সুপারকন্ডাক্টিং চুম্বক ঠান্ডা রাখতে ব্যবহৃত হয়।" },
+            { atomicNumber: 3, symbol: "Li", name: "Lithium", bengaliName: "লিথিয়াম", atomicMass: "6.94", electronConfig: "[He] 2s¹", group: 1, period: 2, category: "ক্ষার ধাতু", use: "রিচার্জেবল ব্যাটারি তৈরিতে ব্যবহৃত হয়", example: "মোবাইল ফোন ও ল্যাপটপের লিথিয়াম-আয়ন ব্যাটারিতে ব্যবহৃত হয়।" },
+            { atomicNumber: 4, symbol: "Be", name: "Beryllium", bengaliName: "বেরিলিয়াম", atomicMass: "9.0122", electronConfig: "[He] 2s²", group: 2, period: 2, category: "ক্ষারীয় মৃত্তিকা ধাতু", use: "মহাকাশযান ও স্যাটেলাইটের যন্ত্রাংশে ব্যবহৃত হয়", example: "এক্স-রে টিউবের জানালা তৈরিতে এর ব্যবহার রয়েছে।" },
+            { atomicNumber: 5, symbol: "B", name: "Boron", bengaliName: "বোরন", atomicMass: "10.81", electronConfig: "[He] 2s² 2p¹", group: 13, period: 2, category: "উপধাতু", use: "বোরোসিলিকেট গ্লাস তৈরিতে ব্যবহৃত হয়", example: "ল্যাবরেটরির কাঁচের যন্ত্রপাতি (যেমন বিকার) যা তাপে ভাঙে না।" },
+            { atomicNumber: 6, symbol: "C", name: "Carbon", bengaliName: "কার্বন", atomicMass: "12.011", electronConfig: "[He] 2s² 2p²", group: 14, period: 2, category: "অধাতু", use: "পৃথিবীর সমস্ত জীবের ভিত্তি", example: "পেন্সিলের সিসা (গ্রাফাইট) এবং হীরা কার্বনের রূপভেদ।" },
+            { atomicNumber: 7, symbol: "N", name: "Nitrogen", bengaliName: "নাইট্রোজেন", atomicMass: "14.007", electronConfig: "[He] 2s² 2p³", group: 15, period: 2, category: "অধাতু", use: "কৃষিকাজে সার তৈরিতে ব্যবহৃত হয়", example: "বায়ুমণ্ডলের ৭৮% অংশ জুড়ে আছে এই গ্যাস।" },
+            { atomicNumber: 8, symbol: "O", name: "Oxygen", bengaliName: "অক্সিজেন", atomicMass: "15.999", electronConfig: "[He] 2s² 2p⁴", group: 16, period: 2, category: "অধাতু", use: "প্রাণীদের শ্বাস-প্রশ্বাসের জন্য অপরিহার্য", example: "হাসপাতালে রোগীদের কৃত্রিম শ্বাসপ্রশ্বাসের জন্য সিলিন্ডারে ব্যবহৃত হয়।" },
+            { atomicNumber: 9, symbol: "F", name: "Fluorine", bengaliName: "ফ্লোরিন", atomicMass: "18.998", electronConfig: "[He] 2s² 2p⁵", group: 17, period: 2, category: "হ্যালোজেন", use: "দাঁতের ক্ষয় রোধ করতে ব্যবহৃত হয়", example: "টুথপেস্টে ফ্লোরাইড হিসেবে এটি যুক্ত থাকে।" },
+            { atomicNumber: 10, symbol: "Ne", name: "Neon", bengaliName: "নিয়ন", atomicMass: "20.180", electronConfig: "[He] 2s² 2p⁶", group: 18, period: 2, category: "নিষ্ক্রিয় গ্যাস", use: "আলোকসজ্জা ও বিজ্ঞাপনের সাইনবোর্ডে ব্যবহৃত হয়", example: "নিয়ন লাইট যা উজ্জ্বল লালচে-কমলা আলো দেয়।" },
+            { atomicNumber: 11, symbol: "Na", name: "Sodium", bengaliName: "সোডিয়াম", atomicMass: "22.990", electronConfig: "[Ne] 3s¹", group: 1, period: 3, category: "ক্ষার ধাতু", use: "খাবারের স্বাদ বাড়াতে ও সংরক্ষণে", example: "খাবার লবণ বা সোডিয়াম ক্লোরাইড (NaCl)।" },
+            { atomicNumber: 12, symbol: "Mg", name: "Magnesium", bengaliName: "ম্যাগনেসিয়াম", atomicMass: "24.305", electronConfig: "[Ne] 3s²", group: 2, period: 3, category: "ক্ষারীয় মৃত্তিকা ধাতু", use: "হালকা ও মজবুত সংকর ধাতু তৈরিতে", example: "উদ্ভিদের ক্লোরোফিলের প্রধান উপাদান, যা সালোকসংশ্লেষণে সাহায্য করে।" },
+            { atomicNumber: 13, symbol: "Al", name: "Aluminum", bengaliName: "অ্যালুমিনিয়াম", atomicMass: "26.982", electronConfig: "[Ne] 3s² 3p¹", group: 13, period: 3, category: "পোস্ট-ট্রানজিশন ধাতু", use: "রান্নার পাত্র ও বিমানের বডি তৈরিতে", example: "খাবার প্যাক করার অ্যালুমিনিয়াম ফয়েল।" },
+            { atomicNumber: 14, symbol: "Si", name: "Silicon", bengaliName: "সিলিকন", atomicMass: "28.085", electronConfig: "[Ne] 3s² 3p²", group: 14, period: 3, category: "উপধাতু", use: "কম্পিউটার চিপস ও সেমিকন্ডাক্টর তৈরিতে", example: "সোলার প্যানেলে সূর্যালোক থেকে বিদ্যুৎ তৈরিতে ব্যবহৃত হয়।" },
+            { atomicNumber: 15, symbol: "P", name: "Phosphorus", bengaliName: "ফসফরাস", atomicMass: "30.974", electronConfig: "[Ne] 3s² 3p³", group: 15, period: 3, category: "অধাতু", use: "সার ও দিয়াশলাই তৈরিতে ব্যবহৃত হয়", example: "দিয়াশলাইয়ের লাল বারুদ মূলত রেড ফসফরাস।" },
+            { atomicNumber: 16, symbol: "S", name: "Sulfur", bengaliName: "সালফার", atomicMass: "32.06", electronConfig: "[Ne] 3s² 3p⁴", group: 16, period: 3, category: "অধাতু", use: "গানপাউডার ও সালফিউরিক অ্যাসিড উৎপাদনে", example: "পেঁয়াজ ও রসুনের তীব্র গন্ধের কারণ সালফার যৌগ।" },
+            { atomicNumber: 17, symbol: "Cl", name: "Chlorine", bengaliName: "ক্লোরিন", atomicMass: "35.45", electronConfig: "[Ne] 3s² 3p⁵", group: 17, period: 3, category: "হ্যালোজেন", use: "জীবাণুনাশক হিসেবে পানি বিশুদ্ধ করতে", example: "সুইমিং পুলের পানি পরিষ্কার রাখতে ব্যবহৃত ব্লিচিং পাউডার।" },
+            { atomicNumber: 18, symbol: "Ar", name: "Argon", bengaliName: "আর্গন", atomicMass: "39.95", electronConfig: "[Ne] 3s² 3p⁶", group: 18, period: 3, category: "নিষ্ক্রিয় গ্যাস", use: "বৈদ্যুতিক বাল্বের ভেতরে নিষ্ক্রিয় পরিবেশ তৈরি করতে", example: "সাধারণ লাইট বাল্বের ভেতরের গ্যাস।" },
+            { atomicNumber: 19, symbol: "K", name: "Potassium", bengaliName: "পটাশিয়াম", atomicMass: "39.098", electronConfig: "[Ar] 4s¹", group: 1, period: 4, category: "ক্ষার ধাতু", use: "উদ্ভিদের বৃদ্ধিতে সার হিসেবে ব্যবহৃত হয়", example: "কলার মধ্যে প্রচুর পটাশিয়াম থাকে যা মানুষের পেশীর জন্য উপকারী।" },
+            { atomicNumber: 20, symbol: "Ca", name: "Calcium", bengaliName: "ক্যালসিয়াম", atomicMass: "40.078", electronConfig: "[Ar] 4s²", group: 2, period: 4, category: "ক্ষারীয় মৃত্তিকা ধাতু", use: "সিমেন্ট ও প্লাস্টার অব প্যারিস তৈরিতে", example: "মানুষের দাঁত ও হাড়ের প্রধান উপাদান।" },
+            { atomicNumber: 21, symbol: "Sc", name: "Scandium", bengaliName: "স্ক্যান্ডিয়াম", atomicMass: "44.956", electronConfig: "[Ar] 3d¹ 4s²", group: 3, period: 4, category: "ট্রানজিশন ধাতু", use: "উচ্চ ক্ষমতার বাতি তৈরিতে", example: "স্টেডিয়ামের ফ্লাডলাইটে স্ক্যান্ডিয়াম আয়োডাইড ব্যবহৃত হয়।" },
+            { atomicNumber: 22, symbol: "Ti", name: "Titanium", bengaliName: "টাইটানিয়াম", atomicMass: "47.867", electronConfig: "[Ar] 3d² 4s²", group: 4, period: 4, category: "ট্রানজিশন ধাতু", use: "বিমান ও কৃত্রিম হাড়ের জয়েন্ট তৈরিতে", example: "অত্যন্ত মজবুত অথচ হালকা হওয়ায় যুদ্ধবিমানে ব্যবহৃত হয়।" },
+            { atomicNumber: 23, symbol: "V", name: "Vanadium", bengaliName: "ভ্যানাডিয়াম", atomicMass: "50.942", electronConfig: "[Ar] 3d³ 4s²", group: 5, period: 4, category: "ট্রানজিশন ধাতু", use: "ইস্পাতকে শক্ত করতে", example: "গাড়ির গিয়ার ও স্প্রিং তৈরিতে ভ্যানাডিয়াম স্টিল ব্যবহৃত হয়।" },
+            { atomicNumber: 24, symbol: "Cr", name: "Chromium", bengaliName: "ক্রোমিয়াম", atomicMass: "51.996", electronConfig: "[Ar] 3d⁵ 4s¹", group: 6, period: 4, category: "ট্রানজিশন ধাতু", use: "ইস্পাতকে মরিচারোধী করতে", example: "স্টেইনলেস স্টিলের থালাবাসন ও গাড়ির চকচকে বাম্পার।" },
+            { atomicNumber: 25, symbol: "Mn", name: "Manganese", bengaliName: "ম্যাঙ্গানিজ", atomicMass: "54.938", electronConfig: "[Ar] 3d⁵ 4s²", group: 7, period: 4, category: "ট্রানজিশন ধাতু", use: "ব্যাটারি ও অ্যালুমিনিয়ামের পানীয় ক্যান তৈরিতে", example: "সাধারণ ড্রাই সেল ব্যাটারির ভেতরে কালো পাউডার হিসেবে।" },
+            { atomicNumber: 26, symbol: "Fe", name: "Iron", bengaliName: "লোহা", atomicMass: "55.845", electronConfig: "[Ar] 3d⁶ 4s²", group: 8, period: 4, category: "ট্রানজিশন ধাতু", use: "নির্মাণ সামগ্রী, যন্ত্রপাতি ও যানবাহন তৈরিতে", example: "রক্তের হিমোগ্লোবিনের মূল উপাদান যা অক্সিজেন পরিবহন করে।" },
+            { atomicNumber: 27, symbol: "Co", name: "Cobalt", bengaliName: "কোবাল্ট", atomicMass: "58.933", electronConfig: "[Ar] 3d⁷ 4s²", group: 9, period: 4, category: "ট্রানজিশন ধাতু", use: "শক্তিশালী চুম্বক ও ক্যান্সারের চিকিৎসায়", example: "ভিটামিন বি-১২ এর একটি অপরিহার্য উপাদান।" },
+            { atomicNumber: 28, symbol: "Ni", name: "Nickel", bengaliName: "নিকেল", atomicMass: "58.693", electronConfig: "[Ar] 3d⁸ 4s²", group: 10, period: 4, category: "ট্রানজিশন ধাতু", use: "রিচার্জেবল ব্যাটারি ও মুদ্রা তৈরিতে", example: "স্টেইনলেস স্টিলে ক্রোমিয়ামের সাথে নিকেল মেশানো হয়।" },
+            { atomicNumber: 29, symbol: "Cu", name: "Copper", bengaliName: "তামা", atomicMass: "63.546", electronConfig: "[Ar] 3d¹⁰ 4s¹", group: 11, period: 4, category: "ট্রানজিশন ধাতু", use: "বৈদ্যুতিক তার তৈরিতে", example: "বাড়ির ওয়্যারিং ও ইলেকট্রনিক যন্ত্রপাতির সার্কিটে।" },
+            { atomicNumber: 30, symbol: "Zn", name: "Zinc", bengaliName: "জিঙ্ক", atomicMass: "65.38", electronConfig: "[Ar] 3d¹⁰ 4s²", group: 12, period: 4, category: "ট্রানজিশন ধাতু", use: "লোহায় মরিচা রোধ করতে (গ্যালভানাইজিং)", example: "মানুষের রোগ প্রতিরোধ ক্ষমতা বাড়াতে সহায়ক।" },
+            { atomicNumber: 31, symbol: "Ga", name: "Gallium", bengaliName: "গ্যালিয়াম", atomicMass: "69.723", electronConfig: "[Ar] 3d¹⁰ 4s² 4p¹", group: 13, period: 4, category: "পোস্ট-ট্রানজিশন ধাতু", use: "এলইডি (LED) ও সেমিকন্ডাক্টরে", example: "হাতের তালুতে রাখলে এটি গলে যায় (গলনাঙ্ক প্রায় ২৯.৭৬ °C)।" },
+            { atomicNumber: 32, symbol: "Ge", name: "Germanium", bengaliName: "জার্মেনিয়াম", atomicMass: "72.630", electronConfig: "[Ar] 3d¹⁰ 4s² 4p²", group: 14, period: 4, category: "উপধাতু", use: "ফাইবার অপটিক কেবল ও ইনফ্রারেড লেন্স", example: "প্রাথমিক যুগের ট্রানজিস্টরে সিলিকনের বদলে ব্যবহৃত হতো।" },
+            { atomicNumber: 33, symbol: "As", name: "Arsenic", bengaliName: "আর্সেনিক", atomicMass: "74.922", electronConfig: "[Ar] 3d¹⁰ 4s² 4p³", group: 15, period: 4, category: "উপধাতু", use: "কিছু বিশেষ সংকর ধাতু ও সেমিকন্ডাক্টরে", example: "ভূগর্ভস্থ পানিতে আর্সেনিক দূষণ একটি মারাত্মক স্বাস্থ্য সমস্যা।" },
+            { atomicNumber: 34, symbol: "Se", name: "Selenium", bengaliName: "সেলেনিয়াম", atomicMass: "78.971", electronConfig: "[Ar] 3d¹⁰ 4s² 4p⁴", group: 16, period: 4, category: "অধাতু", use: "ফটোকপিয়ার ও সোলার সেলে", example: "খুশকিনাশক শ্যাম্পুতে সেলেনিয়াম সালফাইড ব্যবহৃত হয়।" },
+            { atomicNumber: 35, symbol: "Br", name: "Bromine", bengaliName: "ব্রোমিন", atomicMass: "79.904", electronConfig: "[Ar] 3d¹⁰ 4s² 4p⁵", group: 17, period: 4, category: "হ্যালোজেন", use: "অগ্নি নির্বাপক ও কৃষিকাজের রাসায়নিক", example: "সাধারণ তাপমাত্রায় এটি একটি লালচে-বাদামী তরল অধাতু।" },
+            { atomicNumber: 36, symbol: "Kr", name: "Krypton", bengaliName: "ক্রিপ্টন", atomicMass: "83.798", electronConfig: "[Ar] 3d¹⁰ 4s² 4p⁶", group: 18, period: 4, category: "নিষ্ক্রিয় গ্যাস", use: "ফ্লুরোসেন্ট বাতি ও ফটোগ্রাফিক ফ্ল্যাশ", example: "বিমানবন্দরের রানওয়ের উজ্জ্বল বাতিতে ক্রিপ্টন ব্যবহৃত হয়।" },
+            { atomicNumber: 37, symbol: "Rb", name: "Rubidium", bengaliName: "রুবিডিয়াম", atomicMass: "85.468", electronConfig: "[Kr] 5s¹", group: 1, period: 5, category: "ক্ষার ধাতু", use: "পারমাণবিক ঘড়িতে ও গবেষণায়", example: "অত্যন্ত সক্রিয় ধাতু, পানির সংস্পর্শে বিস্ফোরিত হয়।" },
+            { atomicNumber: 38, symbol: "Sr", name: "Strontium", bengaliName: "স্ট্রনসিয়াম", atomicMass: "87.62", electronConfig: "[Kr] 5s²", group: 2, period: 5, category: "ক্ষারীয় মৃত্তিকা ধাতু", use: "আতশবাজিতে উজ্জ্বল লাল রঙ তৈরি করতে", example: "অন্ধকারে উজ্জ্বল লাল আলো ছড়ানো আতশবাজি।" },
+            { atomicNumber: 39, symbol: "Y", name: "Yttrium", bengaliName: "ইট্রিয়াম", atomicMass: "88.906", electronConfig: "[Kr] 4d¹ 5s²", group: 3, period: 5, category: "ট্রানজিশন ধাতু", use: "লেজার ও রঙিন টেলিভিশনের পিকচার টিউব", example: "সাদা এলইডি আলো তৈরিতে ব্যবহৃত ফসফরের উপাদান।" },
+            { atomicNumber: 40, symbol: "Zr", name: "Zirconium", bengaliName: "জিরকোনিয়াম", atomicMass: "91.224", electronConfig: "[Kr] 4d² 5s²", group: 4, period: 5, category: "ট্রানজিশন ধাতু", use: "নিউক্লিয়ার রিঅ্যাক্টরের পাইপ তৈরিতে", example: "কৃত্রিম হীরা (কিউবিক জিরকোনিয়া) গহনায় ব্যবহৃত হয়।" },
+            { atomicNumber: 41, symbol: "Nb", name: "Niobium", bengaliName: "নিওবিয়াম", atomicMass: "92.906", electronConfig: "[Kr] 4d⁴ 5s¹", group: 5, period: 5, category: "ট্রানজিশন ধাতু", use: "উচ্চ শক্তির ইস্পাত তৈরিতে", example: "জেট ইঞ্জিন ও এমআরআই স্ক্যানারের সুপারকন্ডাক্টর।" },
+            { atomicNumber: 42, symbol: "Mo", name: "Molybdenum", bengaliName: "মলিবডেনাম", atomicMass: "95.95", electronConfig: "[Kr] 4d⁵ 5s¹", group: 6, period: 5, category: "ট্রানজিশন ধাতু", use: "ইস্পাতকে উচ্চ তাপে শক্ত রাখতে", example: "ইঞ্জিনের যন্ত্রাংশ ও কামানের নল তৈরিতে ব্যবহৃত হয়।" },
+            { atomicNumber: 43, symbol: "Tc", name: "Technetium", bengaliName: "টেকনেশিয়াম", atomicMass: "(98)", electronConfig: "[Kr] 4d⁵ 5s²", group: 7, period: 5, category: "ট্রানজিশন ধাতু", use: "চিকিৎসাবিজ্ঞানে রেডিও-আইসোটোপ হিসেবে", example: "শরীরের অভ্যন্তরের হাড় বা অঙ্গ স্ক্যান করতে (Bone scan)।" },
+            { atomicNumber: 44, symbol: "Ru", name: "Ruthenium", bengaliName: "রুথেনিয়াম", atomicMass: "101.07", electronConfig: "[Kr] 4d⁷ 5s¹", group: 8, period: 5, category: "ট্রানজিশন ধাতু", use: "সৌর কোষ ও ইলেকট্রনিক কন্ট্যাক্টে", example: "গহনা ও দামি পেনের নিব মজবুত করতে।" },
+            { atomicNumber: 45, symbol: "Rh", name: "Rhodium", bengaliName: "রোডিয়াম", atomicMass: "102.91", electronConfig: "[Kr] 4d⁸ 5s¹", group: 9, period: 5, category: "ট্রানজিশন ধাতু", use: "গাড়ির ক্যাটালিটিক কনভার্টারে", example: "গাড়ির ক্ষতিকর ধোঁয়াকে কম ক্ষতিকর গ্যাসে পরিণত করে।" },
+            { atomicNumber: 46, symbol: "Pd", name: "Palladium", bengaliName: "প্যালাডিয়াম", atomicMass: "106.42", electronConfig: "[Kr] 4d¹⁰", group: 10, period: 5, category: "ট্রানজিশন ধাতু", use: "ক্যাটালিটিক কনভার্টার ও সাদা সোনা তৈরিতে", example: "এটি প্রচুর পরিমাণ হাইড্রোজেন গ্যাস শোষণ করতে পারে।" },
+            { atomicNumber: 47, symbol: "Ag", name: "Silver", bengaliName: "রূপা", atomicMass: "107.87", electronConfig: "[Kr] 4d¹⁰ 5s¹", group: 11, period: 5, category: "ট্রানজিশন ধাতু", use: "গহনা, আয়না ও ফটোগ্রাফিতে", example: "বিদ্যুৎ ও তাপের সর্বোত্তম পরিবাহী ধাতু।" },
+            { atomicNumber: 48, symbol: "Cd", name: "Cadmium", bengaliName: "ক্যাডমিয়াম", atomicMass: "112.41", electronConfig: "[Kr] 4d¹⁰ 5s²", group: 12, period: 5, category: "ট্রানজিশন ধাতু", use: "রিচার্জেবল ব্যাটারি (Ni-Cd) তৈরিতে", example: "নিউক্লিয়ার রিঅ্যাক্টরে নিউট্রন শোষক হিসেবে ব্যবহৃত হয়।" },
+            { atomicNumber: 49, symbol: "In", name: "Indium", bengaliName: "ইন্ডিয়াম", atomicMass: "114.82", electronConfig: "[Kr] 4d¹⁰ 5s² 5p¹", group: 13, period: 5, category: "পোস্ট-ট্রানজিশন ধাতু", use: "টাচস্ক্রিন ডিসপ্লে তৈরিতে", example: "স্মার্টফোন ও টিভির এলসিডি স্ক্রিনে ইন্ডিয়াম টিন অক্সাইড ব্যবহৃত হয়।" },
+            { atomicNumber: 50, symbol: "Sn", name: "Tin", bengaliName: "টিন", atomicMass: "118.71", electronConfig: "[Kr] 4d¹⁰ 5s² 5p²", group: 14, period: 5, category: "পোস্ট-ট্রানজিশন ধাতু", use: "খাবারের ক্যান সংরক্ষণে প্রলেপ দিতে", example: "ব্রোঞ্জ তৈরিতে তামার সাথে টিন মেশানো হয়।" },
+            { atomicNumber: 51, symbol: "Sb", name: "Antimony", bengaliName: "অ্যান্টিমনি", atomicMass: "121.76", electronConfig: "[Kr] 4d¹⁰ 5s² 5p³", group: 15, period: 5, category: "উপধাতু", use: "অগ্নি-প্রতিরোধী পদার্থ ও ব্যাটারিতে", example: "শিশুদের খেলনা ও কাপড়ে সহজে যেন আগুন না ধরে।" },
+            { atomicNumber: 52, symbol: "Te", name: "Tellurium", bengaliName: "টেলুরিয়াম", atomicMass: "127.60", electronConfig: "[Kr] 4d¹⁰ 5s² 5p⁴", group: 16, period: 5, category: "উপধাতু", use: "সোলার প্যানেল ও থার্মোইলেকট্রিক ডিভাইসে", example: "সিডি (CD) ও ডিভিডির (DVD) রিরাইটেবল স্তরে ব্যবহৃত হয়।" },
+            { atomicNumber: 53, symbol: "I", name: "Iodine", bengaliName: "আয়োডিন", atomicMass: "126.90", electronConfig: "[Kr] 4d¹⁰ 5s² 5p⁵", group: 17, period: 5, category: "হ্যালোজেন", use: "জীবাণুনাশক ও পুষ্টিতে", example: "গলগণ্ড রোগ প্রতিরোধে আয়োডিনযুক্ত লবণ খাওয়া হয়।" },
+            { atomicNumber: 54, symbol: "Xe", name: "Xenon", bengaliName: "জেনন", atomicMass: "131.29", electronConfig: "[Kr] 4d¹⁰ 5s² 5p⁶", group: 18, period: 5, category: "নিষ্ক্রিয় গ্যাস", use: "ক্যামেরার ফ্ল্যাশ ও গাড়ির হেডলাইটে", example: "জেনন আর্ক ল্যাম্প সিনেমা প্রজেক্টরে উজ্জ্বল আলো দেয়।" },
+            { atomicNumber: 55, symbol: "Cs", name: "Cesium", bengaliName: "সিজিয়াম", atomicMass: "132.91", electronConfig: "[Xe] 6s¹", group: 1, period: 6, category: "ক্ষার ধাতু", use: "অত্যন্ত নিখুঁত পারমাণবিক ঘড়িতে", example: "জিপিএস (GPS) সিস্টেমে সময় মাপার জন্য সিজিয়াম ঘড়ি ব্যবহৃত হয়।" },
+            { atomicNumber: 56, symbol: "Ba", name: "Barium", bengaliName: "বেরিয়াম", atomicMass: "137.33", electronConfig: "[Xe] 6s²", group: 2, period: 6, category: "ক্ষারীয় মৃত্তিকা ধাতু", use: "এক্স-রে ইমেজিং ও আতশবাজিতে", example: "পেটের এক্স-রে করার আগে রোগীদের 'বেরিয়াম মিল' খাওয়ানো হয়।" },
+            { atomicNumber: 57, symbol: "La", name: "Lanthanum", bengaliName: "ল্যান্থানাম", atomicMass: "138.91", electronConfig: "[Xe] 5d¹ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "ক্যামেরার লেন্স ও হাইব্রিড গাড়ির ব্যাটারিতে", example: "উন্নত মানের অপটিক্যাল গ্লাস তৈরিতে ব্যবহৃত হয়।" },
+            { atomicNumber: 58, symbol: "Ce", name: "Cerium", bengaliName: "সেরিয়াম", atomicMass: "140.12", electronConfig: "[Xe] 4f¹ 5d¹ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "গ্যাসের ওভেনের ইগনিটার ও পলিশিং পাউডারে", example: "ফ্লিন্ট লাইটারে স্ফুলিঙ্গ তৈরি করতে ব্যবহৃত হয়।" },
+            { atomicNumber: 59, symbol: "Pr", name: "Praseodymium", bengaliName: "প্রাসিওডিমিয়াম", atomicMass: "140.91", electronConfig: "[Xe] 4f³ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "ওয়েল্ডিং গগলস ও লেজারে", example: "চোখ রক্ষাকারী গগলসে ক্ষতিকর আলো আটকাতে।" },
+            { atomicNumber: 60, symbol: "Nd", name: "Neodymium", bengaliName: "নিওডিমিয়াম", atomicMass: "144.24", electronConfig: "[Xe] 4f⁴ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "পৃথিবীর সবচেয়ে শক্তিশালী স্থায়ী চুম্বক তৈরিতে", example: "ইলেকট্রিক মোটর, হেডফোন ও হার্ড ড্রাইভে এই চুম্বক থাকে।" },
+            { atomicNumber: 61, symbol: "Pm", name: "Promethium", bengaliName: "প্রোমেথিয়াম", atomicMass: "(145)", electronConfig: "[Xe] 4f⁵ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "নিউক্লিয়ার ব্যাটারি ও আলোকিত রঙে", example: "পেসমেকারের ব্যাটারিতে একসময় ব্যবহৃত হতো।" },
+            { atomicNumber: 62, symbol: "Sm", name: "Samarium", bengaliName: "সামারিয়াম", atomicMass: "150.36", electronConfig: "[Xe] 4f⁶ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "বিশেষ ধরনের চুম্বক ও ক্যান্সারের ওষুধে", example: "সামারিয়াম-কোবাল্ট চুম্বক উচ্চ তাপমাত্রায় কাজ করতে পারে।" },
+            { atomicNumber: 63, symbol: "Eu", name: "Europium", bengaliName: "ইউরোপিয়াম", atomicMass: "151.96", electronConfig: "[Xe] 4f⁷ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "টিভির স্ক্রিনে লাল রঙ তৈরি করতে", example: "ইউরোর ব্যাংকনোট জালিয়াতি রোধে ফ্লুরোসেন্ট মার্ক হিসেবে।" },
+            { atomicNumber: 64, symbol: "Gd", name: "Gadolinium", bengaliName: "গ্যাডোলিনিয়াম", atomicMass: "157.25", electronConfig: "[Xe] 4f⁷ 5d¹ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "এমআরআই (MRI) স্ক্যানের কন্ট্রাস্ট এজেন্ট হিসেবে", example: "শরীরের ভেতরের পরিষ্কার ছবি পেতে ইনজেকশন হিসেবে দেওয়া হয়।" },
+            { atomicNumber: 65, symbol: "Tb", name: "Terbium", bengaliName: "টারবিয়াম", atomicMass: "158.93", electronConfig: "[Xe] 4f⁹ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "ফ্লুরোসেন্ট ল্যাম্প ও স্ক্রিনে সবুজ রঙে", example: "স্পিকার ও সোনার প্যানেলে স্মার্ট উপাদান তৈরিতে।" },
+            { atomicNumber: 66, symbol: "Dy", name: "Dysprosium", bengaliName: "ডিসপ্রোসিয়াম", atomicMass: "162.50", electronConfig: "[Xe] 4f¹⁰ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "উচ্চ শক্তির চুম্বক ও হার্ড ড্রাইভে", example: "নিওডিমিয়াম চুম্বকের তাপ সহনশীলতা বাড়াতে মেশানো হয়।" },
+            { atomicNumber: 67, symbol: "Ho", name: "Holmium", bengaliName: "হোলমিয়াম", atomicMass: "164.93", electronConfig: "[Xe] 4f¹¹ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "মেডিকেল লেজার ও শক্তিশালী চুম্বকে", example: "প্রোস্টেট ও চোখের সার্জারিতে হোলমিয়াম লেজার ব্যবহৃত হয়।" },
+            { atomicNumber: 68, symbol: "Er", name: "Erbium", bengaliName: "আরবিয়াম", atomicMass: "167.26", electronConfig: "[Xe] 4f¹² 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "ফাইবার অপটিক কেবল ও লেজারে", example: "ইন্টারনেট ডেটা দ্রুত পাঠাতে ফাইবার অপটিক্সের সিগন্যাল অ্যামপ্লিফায়ার হিসেবে।" },
+            { atomicNumber: 69, symbol: "Tm", name: "Thulium", bengaliName: "থুলিয়াম", atomicMass: "168.93", electronConfig: "[Xe] 4f¹³ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "পোর্টেবল এক্স-রে মেশিনে", example: "বিদ্যুৎবিহীন স্থানে মেডিকেল ইমেজিং এর জন্য ব্যবহৃত হয়।" },
+            { atomicNumber: 70, symbol: "Yb", name: "Ytterbium", bengaliName: "ইটারবিয়াম", atomicMass: "173.05", electronConfig: "[Xe] 4f¹⁴ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "লেজার ও স্টেইনলেস স্টিল তৈরিতে", example: "ভূমিকম্প মাপার সেন্সরে এর ব্যবহার রয়েছে।" },
+            { atomicNumber: 71, symbol: "Lu", name: "Lutetium", bengaliName: "লুটেসিয়াম", atomicMass: "174.97", electronConfig: "[Xe] 4f¹⁴ 5d¹ 6s²", group: 3, period: 6, category: "ল্যান্থানাইড", use: "পিইটি (PET) স্ক্যানার ও ক্যানসার চিকিৎসায়", example: "মহাকাশের উল্কাপিন্ডের বয়স নির্ণয় করতে ব্যবহৃত হয়।" },
+            { atomicNumber: 72, symbol: "Hf", name: "Hafnium", bengaliName: "হাফনিয়াম", atomicMass: "178.49", electronConfig: "[Xe] 4f¹⁴ 5d² 6s²", group: 4, period: 6, category: "ট্রানজিশন ধাতু", use: "নিউক্লিয়ার সাবমেরিনের কন্ট্রোল রডে", example: "প্লাজমা কাটিং মেশিনের ইলেক্ট্রোড তৈরিতে।" },
+            { atomicNumber: 73, symbol: "Ta", name: "Tantalum", bengaliName: "ট্যানটালাম", atomicMass: "180.95", electronConfig: "[Xe] 4f¹⁴ 5d³ 6s²", group: 5, period: 6, category: "ট্রানজিশন ধাতু", use: "মোবাইল ফোন ও ল্যাপটপের ক্যাপাসিটরে", example: "শরীরের ভেতরে সার্জিকাল ইমপ্লান্ট তৈরিতে (কারণ এটি ইমিউন সিস্টেমে প্রতিক্রিয়া করে না)।" },
+            { atomicNumber: 74, symbol: "W", name: "Tungsten", bengaliName: "টাংস্টেন", atomicMass: "183.84", electronConfig: "[Xe] 4f¹⁴ 5d⁴ 6s²", group: 6, period: 6, category: "ট্রানজিশন ধাতু", use: "বৈদ্যুতিক বাল্বের ফিলামেন্টে", example: "ধাতুর মধ্যে এর গলনাঙ্ক সবচেয়ে বেশি (৩৪২২°C)।" },
+            { atomicNumber: 75, symbol: "Re", name: "Rhenium", bengaliName: "রেনিয়াম", atomicMass: "186.21", electronConfig: "[Xe] 4f¹⁴ 5d⁵ 6s²", group: 7, period: 6, category: "ট্রানজিশন ধাতু", use: "জেট ইঞ্জিন ও রকেটের যন্ত্রাংশে", example: "উচ্চ তাপমাত্রায় টিকে থাকতে পারে এমন সংকর ধাতু তৈরিতে।" },
+            { atomicNumber: 76, symbol: "Os", name: "Osmium", bengaliName: "অসমিয়াম", atomicMass: "190.23", electronConfig: "[Xe] 4f¹⁴ 5d⁶ 6s²", group: 8, period: 6, category: "ট্রানজিশন ধাতু", use: "ফাউন্টেন পেনের নিব ও ইলেকট্রনিক কন্ট্যাক্টে", example: "এটি প্রাকৃতিক মৌলগুলোর মধ্যে সবচেয়ে ঘন ও ভারী।" },
+            { atomicNumber: 77, symbol: "Ir", name: "Iridium", bengaliName: "ইরিডিয়াম", atomicMass: "192.22", electronConfig: "[Xe] 4f¹⁴ 5d⁷ 6s²", group: 9, period: 6, category: "ট্রানজিশন ধাতু", use: "স্পার্ক প্লাগ ও কম্পাস তৈরিতে", example: "ডাইনোসর বিলুপ্তির সময়কার উল্কাপিন্ডের স্তরে এই ধাতু প্রচুর পাওয়া যায়।" },
+            { atomicNumber: 78, symbol: "Pt", name: "Platinum", bengaliName: "প্লাটিনাম", atomicMass: "195.08", electronConfig: "[Xe] 4f¹⁴ 5d⁹ 6s¹", group: 10, period: 6, category: "ট্রানজিশন ধাতু", use: "মূল্যবান গহনা ও ক্যাটালিটিক কনভার্টারে", example: "ক্যান্সার চিকিৎসায় কেমোথেরাপির ওষুধে (সিসপ্লাটিন) ব্যবহৃত হয়।" },
+            { atomicNumber: 79, symbol: "Au", name: "Gold", bengaliName: "সোনা", atomicMass: "196.97", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s¹", group: 11, period: 6, category: "ট্রানজিশন ধাতু", use: "গহনা, মুদ্রা ও ইলেকট্রনিক্সে", example: "স্মার্টফোন ও কম্পিউটারের মাইক্রোচিপে বিদ্যুতের সুপরিবাহী হিসেবে।" },
+            { atomicNumber: 80, symbol: "Hg", name: "Mercury", bengaliName: "পারদ", atomicMass: "200.59", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s²", group: 12, period: 6, category: "ট্রানজিশন ধাতু", use: "থার্মোমিটার ও ব্যারোমিটারে", example: "একমাত্র ধাতু যা সাধারণ তাপমাত্রায় তরল থাকে।" },
+            { atomicNumber: 81, symbol: "Tl", name: "Thallium", bengaliName: "থ্যালিয়াম", atomicMass: "204.38", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹", group: 13, period: 6, category: "পোস্ট-ট্রানজিশন ধাতু", use: "অপটিক্যাল লেন্স ও ইলেকট্রনিক্সে", example: "এটি অত্যন্ত বিষাক্ত, একসময় ইঁদুর মারার বিষ হিসেবে ব্যবহৃত হতো।" },
+            { atomicNumber: 82, symbol: "Pb", name: "Lead", bengaliName: "সীসা", atomicMass: "207.2", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²", group: 14, period: 6, category: "পোস্ট-ট্রানজিশন ধাতু", use: "গাড়ির ব্যাটারি ও এক্স-রে শিল্ড তৈরিতে", example: "রেডিয়েশন থেকে বাঁচতে ডাক্তাররা সীসার তৈরি অ্যাপ্রন পরেন।" },
+            { atomicNumber: 83, symbol: "Bi", name: "Bismuth", bengaliName: "বিসমাথ", atomicMass: "208.98", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³", group: 15, period: 6, category: "পোস্ট-ট্রানজিশন ধাতু", use: "পেটের ওষুধ ও ফায়ার অ্যালার্মে", example: "অ্যান্টাসিড ওষুধ (যেমন পেপ্টো-বিসমল) তৈরিতে ব্যবহৃত হয়।" },
+            { atomicNumber: 84, symbol: "Po", name: "Polonium", bengaliName: "পোলোনিয়াম", atomicMass: "(209)", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴", group: 16, period: 6, category: "পোস্ট-ট্রানজিশন ধাতু", use: "মহাকাশযানের থার্মোইলেকট্রিক জেনারেটরে", example: "এটি অত্যন্ত তেজস্ক্রিয়, মেরি কুরি এর আবিষ্কারক।" },
+            { atomicNumber: 85, symbol: "At", name: "Astatine", bengaliName: "অ্যাস্টাটিন", atomicMass: "(210)", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵", group: 17, period: 6, category: "হ্যালোজেন", use: "ক্যান্সার চিকিৎসায় রেডিওথেরাপিতে", example: "পৃথিবীর ভূত্বকে প্রাকৃতিকভাবে পাওয়া সবচেয়ে বিরল মৌল।" },
+            { atomicNumber: 86, symbol: "Rn", name: "Radon", bengaliName: "রেডন", atomicMass: "(222)", electronConfig: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶", group: 18, period: 6, category: "নিষ্ক্রিয় গ্যাস", use: "ভূমিকম্পের পূর্বাভাস ও রেডিওথেরাপিতে", example: "এটি একটি তেজস্ক্রিয় গ্যাস যা মাটির নিচ থেকে নির্গত হয়।" },
+            { atomicNumber: 87, symbol: "Fr", name: "Francium", bengaliName: "ফ্রান্সিয়াম", atomicMass: "(223)", electronConfig: "[Rn] 7s¹", group: 1, period: 7, category: "ক্ষার ধাতু", use: "বৈজ্ঞানিক গবেষণায়", example: "অত্যন্ত বিরল ও ক্ষণস্থায়ী একটি তেজস্ক্রিয় মৌল।" },
+            { atomicNumber: 88, symbol: "Ra", name: "Radium", bengaliName: "রেডিয়াম", atomicMass: "(226)", electronConfig: "[Rn] 7s²", group: 2, period: 7, category: "ক্ষারীয় মৃত্তিকা ধাতু", use: "একসময় অন্ধকারে উজ্জ্বল ঘড়ির ডায়াল তৈরিতে ব্যবহৃত হতো", example: "মেরি কুরি এটি আবিষ্কার করেন, বর্তমানে রেডিওথেরাপিতে ব্যবহৃত হয়।" },
+            { atomicNumber: 89, symbol: "Ac", name: "Actinium", bengaliName: "অ্যাক্টিনিয়াম", atomicMass: "(227)", electronConfig: "[Rn] 6d¹ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "ক্যান্সারের চিকিৎসায়", example: "তেজস্ক্রিয় হওয়ায় এটি অন্ধকারে নীলচে আলো ছড়ায়।" },
+            { atomicNumber: 90, symbol: "Th", name: "Thorium", bengaliName: "থোরিয়াম", atomicMass: "232.04", electronConfig: "[Rn] 6d² 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "ভবিষ্যতের নিউক্লিয়ার রিঅ্যাক্টরের জ্বালানি হিসেবে", example: "ক্যামেরার উন্নত লেন্স তৈরিতে একসময় ব্যবহৃত হতো।" },
+            { atomicNumber: 91, symbol: "Pa", name: "Protactinium", bengaliName: "প্রোট্যাক্টিনিয়াম", atomicMass: "231.04", electronConfig: "[Rn] 5f² 6d¹ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "বৈজ্ঞানিক গবেষণায়", example: "সমুদ্রের তলদেশের পলিস্তরের বয়স নির্ণয় করতে ব্যবহৃত হয়।" },
+            { atomicNumber: 92, symbol: "U", name: "Uranium", bengaliName: "ইউরেনিয়াম", atomicMass: "238.03", electronConfig: "[Rn] 5f³ 6d¹ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "পারমাণবিক বিদ্যুৎকেন্দ্রে জ্বালানি হিসেবে", example: "পারমাণবিক বোমা ও সাবমেরিনের জ্বালানি হিসেবে ব্যাপকভাবে পরিচিত।" },
+            { atomicNumber: 93, symbol: "Np", name: "Neptunium", bengaliName: "নেপচুনিয়াম", atomicMass: "(237)", electronConfig: "[Rn] 5f⁴ 6d¹ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "প্লুটোনিয়াম তৈরিতে ব্যবহৃত হয়", example: "নিউক্লিয়ার রিঅ্যাক্টরের উপজাত হিসেবে তৈরি হয়।" },
+            { atomicNumber: 94, symbol: "Pu", name: "Plutonium", bengaliName: "প্লুটোনিয়াম", atomicMass: "(244)", electronConfig: "[Rn] 5f⁶ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "পারমাণবিক অস্ত্র ও মহাকাশযানের শক্তিতে", example: "মার্স রোভার ও ভয়েজার মহাকাশযানের থার্মোইলেকট্রিক জেনারেটরে।" },
+            { atomicNumber: 95, symbol: "Am", name: "Americium", bengaliName: "অ্যামেরিসিয়াম", atomicMass: "(243)", electronConfig: "[Rn] 5f⁷ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "ধোঁয়া শনাক্তকারী যন্ত্রে (Smoke Detector)", example: "বাসা-বাড়িতে আগুন লাগার সতর্কবার্তায় এই তেজস্ক্রিয় মৌল সামান্য পরিমাণে থাকে।" },
+            { atomicNumber: 96, symbol: "Cm", name: "Curium", bengaliName: "কুরিয়াম", atomicMass: "(247)", electronConfig: "[Rn] 5f⁷ 6d¹ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "মহাকাশযানের বিদ্যুৎ উৎপাদনে", example: "মঙ্গলে পাঠানো রোভারের এক্স-রে স্পেকট্রোমিটারে ব্যবহৃত হয়েছে।" },
+            { atomicNumber: 97, symbol: "Bk", name: "Berkelium", bengaliName: "বার্কেলিয়াম", atomicMass: "(247)", electronConfig: "[Rn] 5f⁹ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "ভারী কৃত্রিম মৌল তৈরিতে", example: "এটি ক্যালিফোর্নিয়ার বার্কলের ল্যাবরেটরিতে প্রথম তৈরি হয়।" },
+            { atomicNumber: 98, symbol: "Cf", name: "Californium", bengaliName: "ক্যালিফোর্নিয়াম", atomicMass: "(251)", electronConfig: "[Rn] 5f¹⁰ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "ক্যান্সার চিকিৎসা ও খনিজ অনুসন্ধানে", example: "তেলকূপ ও খনিতে মূল্যবান ধাতু খুঁজতে নিউট্রন উৎস হিসেবে ব্যবহৃত হয়।" },
+            { atomicNumber: 99, symbol: "Es", name: "Einsteinium", bengaliName: "আইনস্টাইনিয়াম", atomicMass: "(252)", electronConfig: "[Rn] 5f¹¹ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "বৈজ্ঞানিক গবেষণায়", example: "অ্যালবার্ট আইনস্টাইনের নামানুসারে এর নামকরণ করা হয়েছে।" },
+            { atomicNumber: 100, symbol: "Fm", name: "Fermium", bengaliName: "ফার্মিয়াম", atomicMass: "(257)", electronConfig: "[Rn] 5f¹² 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "শুধুমাত্র গবেষণার কাজে", example: "এটি প্রথম থার্মোনিউক্লিয়ার বোমার ধ্বংসাবশেষ থেকে আবিষ্কৃত হয়।" },
+            { atomicNumber: 101, symbol: "Md", name: "Mendelevium", bengaliName: "মেন্ডেলেভিয়াম", atomicMass: "(258)", electronConfig: "[Rn] 5f¹³ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "মৌলিক গবেষণায়", example: "পর্যায় সারণির আবিষ্কারক দিমিত্রি মেন্ডেলিভের স্মরণে নামকরণ।" },
+            { atomicNumber: 102, symbol: "No", name: "Nobelium", bengaliName: "নোবেলিয়াম", atomicMass: "(259)", electronConfig: "[Rn] 5f¹⁴ 7s²", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "বিজ্ঞানী আলফ্রেড নোবেলের নামানুসারে নামকরণ করা হয়েছে।" },
+            { atomicNumber: 103, symbol: "Lr", name: "Lawrencium", bengaliName: "লরেনসিয়াম", atomicMass: "(266)", electronConfig: "[Rn] 5f¹⁴ 7s² 7p¹", group: 3, period: 7, category: "অ্যাক্টিনাইড", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "কৃত্রিমভাবে তৈরি ক্ষণস্থায়ী মৌল, প্রকৃতিতে পাওয়া যায় না।" },
+            { atomicNumber: 104, symbol: "Rf", name: "Rutherfordium", bengaliName: "রাদারফোর্ডিয়াম", atomicMass: "(267)", electronConfig: "[Rn] 5f¹⁴ 6d² 7s²", group: 4, period: 7, category: "ট্রানজিশন ধাতু", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "কৃত্রিমভাবে তৈরি, এর কোনো বাণিজ্যিক ব্যবহার নেই।" },
+            { atomicNumber: 105, symbol: "Db", name: "Dubnium", bengaliName: "ডুবনিয়াম", atomicMass: "(268)", electronConfig: "[Rn] 5f¹⁴ 6d³ 7s²", group: 5, period: 7, category: "ট্রানজিশন ধাতু", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "রাশিয়ার ডুবনা শহরের নামানুসারে নামকরণ করা হয়েছে।" },
+            { atomicNumber: 106, symbol: "Sg", name: "Seaborgium", bengaliName: "সিবোর্গিয়াম", atomicMass: "(269)", electronConfig: "[Rn] 5f¹⁴ 6d⁴ 7s²", group: 6, period: 7, category: "ট্রানজিশন ধাতু", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "বিজ্ঞানী গ্লেন সিবোর্গের জীবদ্দশায় তার নামে নামকরণ করা হয়।" },
+            { atomicNumber: 107, symbol: "Bh", name: "Bohrium", bengaliName: "বোহরিয়াম", atomicMass: "(270)", electronConfig: "[Rn] 5f¹⁴ 6d⁵ 7s²", group: 7, period: 7, category: "ট্রানজিশন ধাতু", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "নিলস বোরের নামানুসারে এই ভারী মৌলের নাম।" },
+            { atomicNumber: 108, symbol: "Hs", name: "Hassium", bengaliName: "হ্যাসিয়াম", atomicMass: "(277)", electronConfig: "[Rn] 5f¹⁴ 6d⁶ 7s²", group: 8, period: 7, category: "ট্রানজিশন ধাতু", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "কৃত্রিমভাবে ল্যাবরেটরিতে তৈরি করা হয়, দ্রুত ক্ষয়প্রাপ্ত হয়।" },
+            { atomicNumber: 109, symbol: "Mt", name: "Meitnerium", bengaliName: "মাইটনেরিয়াম", atomicMass: "(278)", electronConfig: "[Rn] 5f¹⁴ 6d⁷ 7s²", group: 9, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "বিজ্ঞানী লিজে মাইটনারের সম্মানে নামকরণ।" },
+            { atomicNumber: 110, symbol: "Ds", name: "Darmstadtium", bengaliName: "ডার্মস্টাটিয়াম", atomicMass: "(281)", electronConfig: "[Rn] 5f¹⁴ 6d⁸ 7s²", group: 10, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "জার্মানির ডার্মস্টাড শহরের গবেষণাগারে এটি প্রথম তৈরি হয়।" },
+            { atomicNumber: 111, symbol: "Rg", name: "Roentgenium", bengaliName: "রন্টজেনিয়াম", atomicMass: "(282)", electronConfig: "[Rn] 5f¹⁴ 6d⁹ 7s²", group: 11, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "এক্স-রে আবিষ্কারক উইলহেম রন্টজেনের নামে নামকরণ।" },
+            { atomicNumber: 112, symbol: "Cn", name: "Copernicium", bengaliName: "কোপারনিসিয়াম", atomicMass: "(285)", electronConfig: "[Rn] 5f¹⁴ 6d¹⁰ 7s²", group: 12, period: 7, category: "ট্রানজিশন ধাতু", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "নিকোলাস কোপার্নিকাসের স্মরণে নাম রাখা হয়েছে।" },
+            { atomicNumber: 113, symbol: "Nh", name: "Nihonium", bengaliName: "নিহোনিয়াম", atomicMass: "(286)", electronConfig: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹", group: 13, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "জাপানি বিজ্ঞানীদের আবিষ্কৃত, 'নিহোন' মানে জাপান।" },
+            { atomicNumber: 114, symbol: "Fl", name: "Flerovium", bengaliName: "ফ্লেরোভিয়াম", atomicMass: "(289)", electronConfig: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²", group: 14, period: 7, category: "পোস্ট-ট্রানজিশন ধাতু", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "সুপারহেভি মৌল, অত্যন্ত ক্ষণস্থায়ী।" },
+            { atomicNumber: 115, symbol: "Mc", name: "Moscovium", bengaliName: "মস্কোভিয়াম", atomicMass: "(290)", electronConfig: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³", group: 15, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "রাশিয়ার মস্কো অঞ্চলের ল্যাবরেটরিতে তৈরি।" },
+            { atomicNumber: 116, symbol: "Lv", name: "Livermorium", bengaliName: "লিভারমোরিয়াম", atomicMass: "(293)", electronConfig: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴", group: 16, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "লরেন্স লিভারমোর ন্যাশনাল ল্যাবরেটরির নামে।" },
+            { atomicNumber: 117, symbol: "Ts", name: "Tennessine", bengaliName: "টেনেসিন", atomicMass: "(294)", electronConfig: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵", group: 17, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "আমেরিকার টেনেসি অঙ্গরাজ্যের নামে নামকরণ।" },
+            { atomicNumber: 118, symbol: "Og", name: "Oganesson", bengaliName: "ওগানেসন", atomicMass: "(294)", electronConfig: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶", group: 18, period: 7, category: "অজানা বৈশিষ্ট্য", use: "বৈজ্ঞানিক গবেষণায় ব্যবহৃত হয়", example: "পর্যায় সারণির শেষ আবিষ্কৃত মৌল।" }
+        ];
+
+        // Generic Atom Fallback image if anything else fails
+        const fallbackImageSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="10" fill="%23007bff"/><ellipse cx="50" cy="50" rx="40" ry="12" stroke="%23999" stroke-width="2" fill="none" transform="rotate(30 50 50)"/><ellipse cx="50" cy="50" rx="40" ry="12" stroke="%23999" stroke-width="2" fill="none" transform="rotate(-30 50 50)"/><ellipse cx="50" cy="50" rx="40" ry="12" stroke="%23999" stroke-width="2" fill="none" transform="rotate(90 50 50)"/></svg>`;
+
+        function getCategoryClass(cat) {
+            return cat.replace(/\s+/g, '-');
+        }
+
+        function renderTable() {
+            const container = document.getElementById('pTable');
+            container.innerHTML = '';
+
+            elements.forEach(el => {
+                const cell = document.createElement('div');
+                cell.className = `element cat-${getCategoryClass(el.category)}`;
+                cell.id = `el-${el.atomicNumber}`;
+                cell.onclick = () => openModal(el);
+
+                let col = el.group;
+                let row = el.period;
+
+                // Position Lanthanides and Actinides
+                if (el.atomicNumber >= 57 && el.atomicNumber <= 71) {
+                    col = 4 + (el.atomicNumber - 57);
+                    row = 9;
+                } else if (el.atomicNumber >= 89 && el.atomicNumber <= 103) {
+                    col = 4 + (el.atomicNumber - 89);
+                    row = 10;
+                }
+
+                cell.style.gridColumn = col;
+                cell.style.gridRow = row;
+
+                cell.innerHTML = `
+                    <div class="el-num en">${el.atomicNumber}</div>
+                    <div class="el-symbol en">${el.symbol}</div>
+                    <div class="el-name en">${el.name}</div>
+                `;
+                container.appendChild(cell);
+            });
+        }
+
+        function openModal(el) {
+            // Populate Details
+            document.getElementById('mSymbol').innerText = el.symbol;
+            document.getElementById('mNum').innerText = el.atomicNumber;
+            document.getElementById('mName').innerText = el.name;
+            document.getElementById('mBnName').innerText = el.bengaliName;
+            document.getElementById('mdNum').innerText = el.atomicNumber;
+            document.getElementById('mMass').innerText = el.atomicMass;
+            document.getElementById('mConfig').innerText = el.electronConfig;
+            document.getElementById('mGroup').innerText = (el.group > 0 && el.category !== "ল্যান্থানাইড" && el.category !== "অ্যাক্টিনাইড") ? el.group : "N/A";
+            document.getElementById('mPeriod').innerText = el.period;
+            document.getElementById('mCategory').innerText = el.category;
+            document.getElementById('mUse').innerText = el.use;
+            document.getElementById('mExample').innerText = el.example;
+
+            const symbolBox = document.getElementById('mSymbolBox');
+            symbolBox.className = `modal-symbol-box en cat-${getCategoryClass(el.category)}`;
+
+            document.getElementById('modalOverlay').classList.add('active');
+
+            // Fetch Real Image or Electron Shell Diagram
+            fetchElementImage(el);
+        }
+
+        async function fetchElementImage(el) {
+            const imgEl = document.getElementById('mRealImage');
+            const loader = document.getElementById('imgLoader');
+            
+            // Show Loader initially
+            imgEl.style.display = 'none';
+            loader.style.display = 'block';
+            
+            // Reset any previous onerror handlers
+            imgEl.onerror = null;
+
+            // If we already fetched it, use cached
+            if (el.imageUrl) {
+                imgEl.src = el.imageUrl;
+                imgEl.onload = () => {
+                    loader.style.display = 'none';
+                    imgEl.style.display = 'block';
+                };
+                return;
+            }
+
+            // For Superheavy Elements (104 to 118) or Actinides without real photos,
+            // we bypass Wikipedia Summary API and directly load their Electron Shell 3D Diagram.
+            if (el.atomicNumber >= 104) {
+                const electronShellUrl = `https://en.wikipedia.org/wiki/Special:FilePath/Electron_shell_${el.atomicNumber}_${el.name}.svg`;
+                imgEl.src = electronShellUrl;
+                
+                imgEl.onload = () => {
+                    el.imageUrl = electronShellUrl; // Cache the valid shell diagram
+                    loader.style.display = 'none';
+                    imgEl.style.display = 'block';
+                };
+                
+                imgEl.onerror = () => {
+                    // Final Fallback if Shell Diagram also missing
+                    imgEl.onerror = null;
+                    el.imageUrl = fallbackImageSvg;
+                    imgEl.src = el.imageUrl;
+                    loader.style.display = 'none';
+                    imgEl.style.display = 'block';
+                };
+                return;
+            }
+
+            // Normal logic for Element 1 to 103 (Wikipedia Summary API)
+            let wikiTitle = el.name;
+            if (wikiTitle === "Mercury") wikiTitle = "Mercury_(element)";
+            if (wikiTitle === "Aluminum") wikiTitle = "Aluminium"; 
+
+            try {
+                const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${wikiTitle}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                
+                // Get thumbnail or original image
+                const imgUrl = (data.thumbnail && data.thumbnail.source) || (data.originalimage && data.originalimage.source);
+
+                if (imgUrl) {
+                    imgEl.src = imgUrl;
+                    imgEl.onload = () => {
+                        el.imageUrl = imgUrl; // Cache the URL
+                        loader.style.display = 'none';
+                        imgEl.style.display = 'block';
+                    };
+                    imgEl.onerror = () => { throw new Error('Image format not supported'); };
+                } else {
+                    throw new Error('No image found');
+                }
+            } catch (error) {
+                // If normal photo is not found, try the Electron Shell Diagram as a Backup
+                const fallbackShellUrl = `https://en.wikipedia.org/wiki/Special:FilePath/Electron_shell_${el.atomicNumber}_${el.name}.svg`;
+                imgEl.src = fallbackShellUrl;
+                
+                imgEl.onload = () => {
+                    el.imageUrl = fallbackShellUrl; // Cache the shell diagram
+                    loader.style.display = 'none';
+                    imgEl.style.display = 'block';
+                };
+                
+                imgEl.onerror = () => {
+                    // Ultimate Fallback to basic Blue Atom SVG
+                    imgEl.onerror = null;
+                    el.imageUrl = fallbackImageSvg;
+                    imgEl.src = el.imageUrl;
+                    loader.style.display = 'none';
+                    imgEl.style.display = 'block';
+                };
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function closeModalOnOutside(e) {
+            if (e.target.id === 'modalOverlay') {
+                closeModal();
+            }
+        }
+
+        let toastTimeout;
+        function showToast() {
+            const toast = document.getElementById('toastMsg');
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function searchElement() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            let found = false;
+            let firstMatch = null;
+
+            document.querySelectorAll('.element').forEach(cell => {
+                cell.classList.remove('dimmed', 'highlight');
+            });
+
+            if (query === '') return;
+
+            elements.forEach(el => {
+                const match = el.name.toLowerCase().includes(query) || el.symbol.toLowerCase() === query;
+                const cell = document.getElementById(`el-${el.atomicNumber}`);
+                
+                if (match) {
+                    found = true;
+                    cell.classList.add('highlight');
+                    if (!firstMatch) firstMatch = cell;
+                } else {
+                    cell.classList.add('dimmed');
+                }
+            });
+
+            if (found) {
+                firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            } else {
+                showToast();
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'yes' : 'no');
+            document.getElementById('themeBtn').innerText = isDark ? 'লাইট মোড' : 'ডার্ক মোড';
+        }
+
+        // Init
+        window.onload = () => {
+            renderTable();
+            if(localStorage.getItem('darkMode') === 'yes') {
+                toggleDarkMode();
+            }
+        };
+    </script>
+</body>
+</html>
