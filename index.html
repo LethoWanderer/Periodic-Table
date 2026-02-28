@@ -47,7 +47,7 @@
         .btn-toggle { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 10px 18px; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 14px; }
         .btn-toggle:hover { background: var(--bg-color); }
 
-        /* Legend Section (Clickable Categories) */
+        /* Legend Section */
         .legend-section { display: flex; align-items: center; justify-content: center; padding: 15px 20px; margin: 20px auto; background: var(--card-bg); border-radius: 12px; box-shadow: 0 2px 15px var(--header-shadow); max-width: 1000px; border: 1px solid var(--card-border); }
         .legend-labels { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 15px; }
         .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 5px 10px; border-radius: 20px; transition: all 0.2s; }
@@ -128,7 +128,7 @@
         .info-item strong { display: block; color: var(--accent-color); font-size: 12px; margin-bottom: 4px; }
         .api-loading { font-size: 10px; color: #ff9800; font-weight: normal; margin-left: 5px; }
 
-        /* Element Image Section */
+        /* Element Image Section in Modal */
         .element-image-section { margin-top: 0; margin-bottom: 15px; }
         .element-image-wrap { position: relative; border-radius: 10px; overflow: hidden; cursor: zoom-in; background: var(--card-bg); border: 2px solid var(--card-border); transition: transform 0.3s; aspect-ratio: 16/9; max-height: 180px; display: flex; align-items: center; justify-content: center; }
         .element-image-wrap:hover { transform: scale(1.02); border-color: var(--accent-color); }
@@ -150,6 +150,7 @@
         .zoom-canvas-area { flex: 1; overflow: hidden; position: relative; cursor: grab; touch-action: none; }
         .zoom-canvas-area:active { cursor: grabbing; }
         .zoom-image-container { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+        /* Pointer events none on image prevents native HTML ghost dragging bug */
         .zoom-image-container img { display: block; max-width: none; background: #fff; pointer-events: none; }
         .zoom-info { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.7); padding: 6px 16px; border-radius: 20px; font-family: 'Poppins', sans-serif; font-size: 0.72rem; pointer-events: none; white-space: nowrap; }
 
@@ -187,6 +188,7 @@
         </div>
     </header>
 
+    <!-- Legend Section (Clickable) -->
     <div class="legend-section bn">
         <div class="legend-labels" id="legendLabels"></div>
     </div>
@@ -194,7 +196,9 @@
     <div class="mobile-scroll-hint bn" id="scrollHint">অনুগ্রহ করে ডানে-বামে স্ক্রল করুন <span>⟷</span></div>
 
     <div class="table-wrapper" id="tWrapper" onscroll="hideScrollHint()">
-        <div class="periodic-table" id="pTable"></div>
+        <div class="periodic-table" id="pTable">
+            <!-- Elements will be injected here via JS -->
+        </div>
     </div>
 
     <!-- Modals -->
@@ -206,6 +210,7 @@
                 <div class="modal-title"><h2 class="en" id="mName"></h2><h3 class="bn" id="mBnName"></h3></div>
             </div>
             <div class="modal-body bn">
+                
                 <!-- Image Section Moved to Top -->
                 <div class="element-image-section">
                     <div class="element-image-wrap" id="imgWrap" onclick="openFullScreenImage()">
@@ -218,13 +223,13 @@
                 <!-- Info Grid -->
                 <div class="info-grid">
                     <div class="info-item"><strong>পরমাণু সংখ্যা (Atomic Number)</strong><span class="en" id="mdNum"></span></div>
-                    <div class="info-item"><strong>আণবিক ভর (Atomic Mass)</strong><span class="en" id="mMass"></span></div>
+                    <div class="info-item"><strong>পারমাণবিক ভর (Atomic Mass)</strong><span class="en" id="mMass"></span></div>
                     <div class="info-item"><strong>ইলেকট্রন বিন্যাস (Electron Config)</strong><span class="en" id="mConfig"></span></div>
                     <div class="info-item" style="display: flex; gap:10px;">
                         <div style="flex:1"><strong>গ্রুপ (Group)</strong><span class="en" id="mGroup"></span></div>
                         <div style="flex:1"><strong>পর্যায় (Period)</strong><span class="en" id="mPeriod"></span></div>
                     </div>
-                    <div class="info-item"><strong>শ্রেণি (Category)</strong><span id="mCategory"></span></div>
+                    <div class="info-item"><strong>প্রকৃতি (Category)</strong><span class="bn" id="mCategory"></span></div>
                     <div class="info-item"><strong>একটি গুরুত্বপূর্ণ ব্যবহার</strong><span id="mUse"></span></div>
                     <div class="info-item"><strong>বাস্তব উদাহরণ</strong><span id="mExample"></span></div>
                 </div>
@@ -257,7 +262,8 @@
     <div class="toast bn" id="toastMsg">খুঁজে পাওয়া যায়নি</div>
 
     <script>
-        const elements = [
+        // All 118 Elements
+        const elements =[
             {n:1,s:"H",en:"Hydrogen",bn:"হাইড্রোজেন",m:"1.008",e:"1s¹",g:1,p:1,c:"nonmetal",u:"রকেট জ্বালানি ও রাসায়নিক শিল্পে ব্যবহৃত হয়",ex:"পানির (H₂O) প্রধান উপাদান।"},
             {n:2,s:"He",en:"Helium",bn:"হিলিয়াম",m:"4.0026",e:"1s²",g:18,p:1,c:"noble-gas",u:"বেলুন ও এয়ারশিপে গ্যাস হিসেবে ব্যবহৃত হয়",ex:"এমআরআই (MRI) মেশিনে ব্যবহৃত হয়।"},
             {n:3,s:"Li",en:"Lithium",bn:"লিথিয়াম",m:"6.94",e:"[He] 2s¹",g:1,p:2,c:"alkali-metal",u:"রিচার্জেবল ব্যাটারি তৈরিতে ব্যবহৃত হয়",ex:"মোবাইল ফোন ও ল্যাপটপের ব্যাটারি।"},
@@ -392,9 +398,13 @@
             "unknown": { l: "অজানা বৈশিষ্ট্য", c: "var(--c-unknown)" }
         };
 
+        const periodOrdinals = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th", 7: "7th" };
+
         const fallbackImageSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="10" fill="%23007bff"/><ellipse cx="50" cy="50" rx="40" ry="12" stroke="%23999" stroke-width="2" fill="none" transform="rotate(30 50 50)"/><ellipse cx="50" cy="50" rx="40" ry="12" stroke="%23999" stroke-width="2" fill="none" transform="rotate(-30 50 50)"/><ellipse cx="50" cy="50" rx="40" ry="12" stroke="%23999" stroke-width="2" fill="none" transform="rotate(90 50 50)"/></svg>`;
 
         let categoryHighlightTimeout;
+
+        function getCatCls(cat) { return cat.replace(/\s+/g, '-'); }
 
         function renderLegend() {
             let counts = {};
@@ -405,7 +415,7 @@
                 if (counts[cat]) {
                     const item = document.createElement('div');
                     item.className = 'legend-item bn';
-                    item.title = "এই শ্রেণির মৌলগুলো দেখতে ক্লিক করুন";
+                    item.title = "এই প্রকৃতির মৌলগুলো দেখতে ক্লিক করুন";
                     item.onclick = () => highlightCategory(cat);
                     item.innerHTML = `
                         <div class="color-box" style="background:${categoryInfo[cat].c}"></div>
@@ -487,7 +497,7 @@
             else if (displayGroup === 0) displayGroup = "N/A";
             
             document.getElementById('mGroup').innerText = displayGroup;
-            document.getElementById('mPeriod').innerText = el.p;
+            document.getElementById('mPeriod').innerText = periodOrdinals[el.p] || el.p;
             document.getElementById('mCategory').innerText = categoryInfo[el.c].l;
             document.getElementById('mUse').innerText = el.u;
             document.getElementById('mExample').innerText = el.ex;
